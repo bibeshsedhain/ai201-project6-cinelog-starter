@@ -64,3 +64,28 @@ def test_remove_from_watchlist_preserves_other_users_entries(app, sample_user):
 
         with pytest.raises(NotInWatchlistError):
             remove_from_watchlist(sample_user, film_id)
+
+
+def test_duplicate_add_cannot_change_visibility(app, sample_user):
+    with app.app_context():
+        film = Film(title="Alien")
+        db.session.add(film)
+        db.session.commit()
+        film_id = film.id
+
+    client = app.test_client()
+    watchlist_url = f"/watchlist/{sample_user}"
+    created = client.post(f"{watchlist_url}/add", json={
+        "film_id": film_id,
+        "public": False,
+    })
+    duplicate = client.post(f"{watchlist_url}/add", json={
+        "film_id": film_id,
+        "public": True,
+    })
+
+    assert created.status_code == 201
+    assert created.get_json()["public"] is False
+    assert duplicate.status_code == 409
+    entries = client.get(watchlist_url).get_json()
+    assert [(entry["id"], entry["public"]) for entry in entries] == [(film_id, False)]
