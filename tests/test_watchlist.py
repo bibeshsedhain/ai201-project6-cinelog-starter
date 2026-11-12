@@ -4,7 +4,11 @@ import pytest
 from app import create_app, db
 from models import User, Film, WatchlistEntry
 from services.collection_service import FilmNotFoundError
-from services.watchlist_service import add_to_watchlist
+from services.watchlist_service import (
+    NotInWatchlistError,
+    add_to_watchlist,
+    remove_from_watchlist,
+)
 
 
 @pytest.fixture
@@ -41,3 +45,22 @@ def test_add_to_watchlist_nonexistent_film_raises(app, sample_user):
             add_to_watchlist(user_id=sample_user, film_id=fake_film_id)
 
         assert WatchlistEntry.query.filter_by(user_id=sample_user).count() == 0
+
+
+def test_remove_from_watchlist_preserves_other_users_entries(app, sample_user):
+    with app.app_context():
+        film = Film(title="Alien")
+        other_user = User(username="anotheruser", email="another@example.com")
+        db.session.add_all([film, other_user])
+        db.session.commit()
+        film_id, other_user_id = film.id, other_user.id
+
+        add_to_watchlist(sample_user, film_id)
+        add_to_watchlist(other_user_id, film_id)
+
+        assert remove_from_watchlist(sample_user, film_id) is True
+        remaining = WatchlistEntry.query.filter_by(film_id=film_id).one()
+        assert remaining.user_id == other_user_id
+
+        with pytest.raises(NotInWatchlistError):
+            remove_from_watchlist(sample_user, film_id)
