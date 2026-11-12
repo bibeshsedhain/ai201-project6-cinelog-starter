@@ -27,7 +27,7 @@ def add_film(user_id):
     """
     POST /watchlist/<user_id>/add
 
-    Body: { "film_id": <int> }
+    Body: { "film_id": "<uuid>" }
     """
     data = request.get_json()
     if not data or "film_id" not in data:
@@ -36,5 +36,7 @@ def add_film(user_id):
     try:
         entry = add_to_watchlist(user_id=user_id, film_id=data["film_id"])
         return jsonify(entry.to_dict()), 201
+    except FilmNotFoundError as e:
+        return jsonify({"error": str(e)}), 404
     except AlreadyInWatchlistError as e:
         return jsonify({"error": str(e)}), 409
