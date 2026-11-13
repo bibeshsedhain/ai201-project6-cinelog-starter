@@ -56,7 +56,7 @@ Codex was used to inspect the collection service and existing tests, locate the 
 
 ## Commit history
 
-![Rendered git log --oneline output for commits on feature/watchlist](docs/commit-history.png)
+![Terminal screenshot of the Git log for feature/watchlist](docs/commit-history.png)
 
 ## PR Description
 
